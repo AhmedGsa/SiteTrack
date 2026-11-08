@@ -1,0 +1,7 @@
+db
+.env
+node_modules
+dist
+Rais-Shop-API
+documentation.pdf
+doc_extract.txt
