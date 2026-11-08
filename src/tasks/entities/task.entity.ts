@@ -5,7 +5,8 @@ import { TaskDependency } from "./task-dependency.entity";
 
 @Entity("tasks")
 @Index(["projectId", "code"], { unique: true })
-@Index(["projectId", "status"])
+@Index(["projectId", "status", "plannedEndDate"])
+@Index(["projectId", "plannedStartDate"])
 export class Task {
     @PrimaryGeneratedColumn('uuid')
     id: string;

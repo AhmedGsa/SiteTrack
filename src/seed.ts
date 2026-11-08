@@ -13,16 +13,19 @@ async function bootstrap() {
           .then(() => {
             const logger = new Logger();
             logger.debug('Seeding complete!');
+            return appContext.close();
           })
+          .then(() => process.exit(0))
           .catch(error => {
             const logger = new Logger()
             logger.error('Seeding failed!');
-            throw error;
-          })
-          .finally(() => appContext.close());
+            console.error(error);
+            process.exit(1);
+          });
       })
       .catch(error => {
-        throw error;
+        console.error(error);
+        process.exit(1);
       });
   }
   bootstrap();

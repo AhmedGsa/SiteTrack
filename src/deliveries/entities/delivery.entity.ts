@@ -8,6 +8,7 @@ import { DeliveryLine } from "./delivery-line.entity";
 @Entity("deliveries")
 @Index(["projectId", "sentAt"])
 @Index(["status", "sentAt"])
+@Index(["direction", "status", "sentAt"])
 export class Delivery {
     @PrimaryGeneratedColumn('uuid')
     id: string;

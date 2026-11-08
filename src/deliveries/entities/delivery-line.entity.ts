@@ -1,9 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { Delivery } from "./delivery.entity";
 import { Material } from "src/materials/entities/material.entity";
 
 @Entity("delivery_lines")
 @Unique(["deliveryId", "materialId"])
+@Index(["materialId"])
 export class DeliveryLine {
     @PrimaryGeneratedColumn('uuid')
     id: string;

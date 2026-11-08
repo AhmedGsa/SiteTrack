@@ -88,11 +88,12 @@ Build order for the take-home. Keep this file updated as steps land so context s
 
 ## Step 7 — Scale, seed, Docker, README
 
-**Status: next**
+**Status: done**
 
-- Indexes and list-query performance for assignment-scale data.
-- Large seeder + `docker compose up` as the only setup.
-- README: decisions, trade-offs, what we would do with more time. Swagger is the API doc.
+- Indexes for task date/status filters, delivery direction/status/date, and delivery lines by material.
+- `npm run seed:scale` replaces the database with the assignment volumes (users 5k, projects 2k, invitations 50k, tasks 500k, dependencies 1M+, materials 20k, deliveries 400k, lines 3M).
+- `docker compose up --build` starts Postgres and the API, creates the schema, and loads the small demo seed.
+- README covers how to run, decisions, trade-offs, and what to do with more time.
 
 ## Locked decisions
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from 'src/database/database.module';
 import { SeederService } from './seeder.service';
+import { ScaleSeederService } from './scale-seeder.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Project } from 'src/projects/entities/project.entity';
@@ -22,6 +23,6 @@ import { DeliveryLine } from 'src/deliveries/entities/delivery-line.entity';
         DatabaseModule,
         TypeOrmModule.forFeature([User, Project, ProjectMember, ProjectCounter, Invitation, Notification, Material, Task, TaskDependency, TaskCounter, Store, Stock, Delivery, DeliveryLine]),
     ],
-    providers: [SeederService],
+    providers: [SeederService, ScaleSeederService],
 })
 export class SeederModule {}
