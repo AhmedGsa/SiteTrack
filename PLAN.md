@@ -35,18 +35,19 @@ Build order for the take-home. Keep this file updated as steps land so context s
 
 ## Step 2 — Members, invitations, notifications
 
-**Status: next**
+**Status: done**
 
-- Invite a registered user, withdraw a pending invite.
-- Invitee sees it in notifications and accepts or rejects (only they can).
-- Join the project only after accept.
-- Promote project admin, remove members.
+- Invite a registered user by email, withdraw a pending invite.
+- Invitee sees it in notifications and accepts or rejects (only they can; anyone else gets 404).
+- Join the project only after accept (`isAdmin: false`).
+- Promote / demote project admin, remove members.
 - Never leave a project with zero project admins.
-- Unread notification count (cheap endpoint; every page needs it).
+- `GET /notifications/unread-count` for the badge; mark read without answering is allowed.
+- Seed: pending invite on `PRJ-0001` from `user@sitetrack.com` to `storemanager@sitetrack.com`.
 
 ## Step 3 — Materials catalogue
 
-**Status: pending**
+**Status: next**
 
 - Shared `Material` (name, category, unit). Any logged-in user. CRUD + search/filter. No stock yet.
 

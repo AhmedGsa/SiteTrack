@@ -1,15 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { FilterProjectsDto } from './dto/filter-projects.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
 import { Project } from './entities/project.entity';
 import { ProjectMember } from './entities/project-member.entity';
 import { ProjectCounter } from './entities/project-counter.entity';
 import { AccessService } from 'src/access/access.service';
 import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/users/enum/role.enum';
+import { InvitationsService } from 'src/invitations/invitations.service';
 
 @Injectable()
 export class ProjectsService {
@@ -17,7 +19,9 @@ export class ProjectsService {
     private readonly dataSource: DataSource,
     private readonly accessService: AccessService,
     private readonly usersService: UsersService,
+    private readonly invitationsService: InvitationsService,
     @InjectRepository(Project) private readonly projectRepository: Repository<Project>,
+    @InjectRepository(ProjectMember) private readonly projectMemberRepository: Repository<ProjectMember>,
   ) {}
 
   async create(userId: string, createProjectDto: CreateProjectDto) {
@@ -176,6 +180,67 @@ export class ProjectsService {
     const { project } = await this.accessService.assertProjectAdmin(userId, code);
     await this.projectRepository.delete(project.id);
     return { msg: 'Project deleted successfully' };
+  }
+
+  async findMembers(userId: string, code: string) {
+    const { project } = await this.accessService.assertCanAccessProject(userId, code);
+    const members = await this.projectMemberRepository.find({
+      where: { projectId: project.id },
+      relations: ['user'],
+      order: { createdAt: 'ASC' },
+    });
+    const invitations = await this.invitationsService.listPending(userId, code);
+    return {
+      members: members.map((member) => this.toMemberResponse(member)),
+      invitations,
+    };
+  }
+
+  async updateMember(userId: string, code: string, memberUserId: string, updateMemberDto: UpdateMemberDto) {
+    const { project } = await this.accessService.assertProjectAdmin(userId, code);
+    const member = await this.projectMemberRepository.findOne({
+      where: { projectId: project.id, userId: memberUserId },
+      relations: ['user'],
+    });
+    if (!member) {
+      throw new NotFoundException();
+    }
+    if (member.isAdmin && updateMemberDto.isAdmin === false) {
+      await this.assertNotLastAdmin(project.id);
+    }
+    member.isAdmin = updateMemberDto.isAdmin;
+    await this.projectMemberRepository.save(member);
+    return { msg: 'Member updated successfully', member: this.toMemberResponse(member) };
+  }
+
+  async removeMember(userId: string, code: string, memberUserId: string) {
+    const { project } = await this.accessService.assertProjectAdmin(userId, code);
+    const member = await this.projectMemberRepository.findOneBy({ projectId: project.id, userId: memberUserId });
+    if (!member) {
+      throw new NotFoundException();
+    }
+    if (member.isAdmin) {
+      await this.assertNotLastAdmin(project.id);
+    }
+    await this.projectMemberRepository.delete(member.id);
+    return { msg: 'Member removed successfully' };
+  }
+
+  private async assertNotLastAdmin(projectId: string) {
+    const adminCount = await this.accessService.countProjectAdmins(projectId);
+    if (adminCount <= 1) {
+      throw new BadRequestException('A project must always have at least one project admin');
+    }
+  }
+
+  private toMemberResponse(member: ProjectMember) {
+    return {
+      id: member.user.id,
+      name: member.user.name,
+      email: member.user.email,
+      isAdmin: member.isAdmin,
+      joinedAt: member.createdAt,
+    };
   }
 
   private formatProjectCode(number: number) {

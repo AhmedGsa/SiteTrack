@@ -27,6 +27,10 @@ export class AccessService {
     return await this.projectMemberRepository.findOneBy({ userId, projectId });
   }
 
+  async countProjectAdmins(projectId: string) {
+    return await this.projectMemberRepository.countBy({ projectId, isAdmin: true });
+  }
+
   async assertCanAccessProject(userId: string, code: string) {
     const project = await this.projectRepository.findOneBy({ code });
     if (!project) {

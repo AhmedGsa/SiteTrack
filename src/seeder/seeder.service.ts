@@ -7,6 +7,10 @@ import { Role } from "src/users/enum/role.enum";
 import { Project } from "src/projects/entities/project.entity";
 import { ProjectMember } from "src/projects/entities/project-member.entity";
 import { ProjectCounter } from "src/projects/entities/project-counter.entity";
+import { Invitation } from "src/invitations/entities/invitation.entity";
+import { InvitationStatus } from "src/invitations/enums/invitation-status.enum";
+import { Notification } from "src/notifications/entities/notification.entity";
+import { NotificationType } from "src/notifications/enums/notification-type.enum";
 
 
 @Injectable()
@@ -16,6 +20,8 @@ export class SeederService {
     @InjectRepository(Project) private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember) private readonly projectMemberRepository: Repository<ProjectMember>,
     @InjectRepository(ProjectCounter) private readonly projectCounterRepository: Repository<ProjectCounter>,
+    @InjectRepository(Invitation) private readonly invitationRepository: Repository<Invitation>,
+    @InjectRepository(Notification) private readonly notificationRepository: Repository<Notification>,
   ) {}
 
   async seed() {
@@ -64,6 +70,33 @@ export class SeederService {
       });
       await this.projectMemberRepository.save(membership);
       console.log('Project PRJ-0001 created');
+    }
+
+    const project = await this.projectRepository.findOneBy({ code: 'PRJ-0001' });
+    const inviter = createdUsers['user@sitetrack.com'];
+    const invitee = createdUsers['storemanager@sitetrack.com'];
+    if (project && inviter && invitee) {
+      let invitation = await this.invitationRepository.findOneBy({
+        projectId: project.id,
+        inviteeId: invitee.id,
+        status: InvitationStatus.PENDING,
+      });
+      if (!invitation) {
+        invitation = this.invitationRepository.create({
+          projectId: project.id,
+          inviterId: inviter.id,
+          inviteeId: invitee.id,
+          status: InvitationStatus.PENDING,
+        });
+        await this.invitationRepository.save(invitation);
+        const notification = this.notificationRepository.create({
+          userId: invitee.id,
+          invitationId: invitation.id,
+          type: NotificationType.PROJECT_INVITATION,
+        });
+        await this.notificationRepository.save(notification);
+        console.log('Pending invitation created for store manager');
+      }
     }
 
     console.log('Seeding completed successfully!');

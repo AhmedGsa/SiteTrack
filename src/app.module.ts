@@ -8,6 +8,8 @@ import { DatabaseModule } from './database/database.module';
 import { SeederModule } from './seeder/seeder.module';
 import { AccessModule } from './access/access.module';
 import { ProjectsModule } from './projects/projects.module';
+import { InvitationsModule } from './invitations/invitations.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -20,6 +22,8 @@ import { APP_GUARD } from '@nestjs/core';
     SeederModule,
     AccessModule,
     ProjectsModule,
+    InvitationsModule,
+    NotificationsModule,
     ThrottlerModule.forRoot(),
   ],
   controllers: [AppController],
