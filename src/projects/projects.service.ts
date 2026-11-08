@@ -12,6 +12,7 @@ import { AccessService } from 'src/access/access.service';
 import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/users/enum/role.enum';
 import { InvitationsService } from 'src/invitations/invitations.service';
+import { TasksService } from 'src/tasks/tasks.service';
 
 @Injectable()
 export class ProjectsService {
@@ -20,6 +21,7 @@ export class ProjectsService {
     private readonly accessService: AccessService,
     private readonly usersService: UsersService,
     private readonly invitationsService: InvitationsService,
+    private readonly tasksService: TasksService,
     @InjectRepository(Project) private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember) private readonly projectMemberRepository: Repository<ProjectMember>,
   ) {}
@@ -85,7 +87,13 @@ export class ProjectsService {
     }
 
     if (filterProjectsDto.lateOnly) {
-      qb.andWhere('1 = 0');
+      const today = new Date().toISOString().slice(0, 10);
+      qb.andWhere(`EXISTS (
+        SELECT 1 FROM tasks t
+        WHERE t."projectId" = project.id
+        AND t.status != 'DONE'
+        AND (t."plannedEndDate" < :today OR (t.status = 'NOT_STARTED' AND t."plannedStartDate" < :today))
+      )`, { today });
     }
 
     const countRow = await qb.clone()
@@ -114,6 +122,7 @@ export class ProjectsService {
       .limit(pageSize)
       .getRawMany();
 
+    const stats = await this.tasksService.getProjectTaskStats(rows.map((row) => row.internalId));
     return {
       results: rows.map((row) => this.toProjectResponse(
         {
@@ -124,6 +133,7 @@ export class ProjectsService {
         },
         this.toBool(row.isProjectAdmin),
         Number(row.memberCount),
+        stats.get(row.internalId),
       )),
       count,
     };
@@ -138,10 +148,12 @@ export class ProjectsService {
       .select('COUNT(members.id)', 'memberCount')
       .getRawOne();
 
+    const stats = await this.tasksService.getProjectTaskStats([project.id]);
     return this.toProjectResponse(
       project,
       this.accessService.isSuperAdmin(user) ? !!membership?.isAdmin : membership.isAdmin,
       Number(memberCount?.memberCount || 0),
+      stats.get(project.id),
     );
   }
 
@@ -172,6 +184,7 @@ export class ProjectsService {
         updated,
         this.accessService.isSuperAdmin(user) ? !!membership?.isAdmin : membership.isAdmin,
         Number(memberCount?.memberCount || 0),
+        (await this.tasksService.getProjectTaskStats([project.id])).get(project.id),
       ),
     };
   }
@@ -257,7 +270,12 @@ export class ProjectsService {
     return value === true || value === 't' || value === 'true';
   }
 
-  private toProjectResponse(project: Pick<Project, 'code' | 'name' | 'plannedStartDate' | 'plannedEndDate'>, isProjectAdmin: boolean, memberCount: number) {
+  private toProjectResponse(
+    project: Pick<Project, 'code' | 'name' | 'plannedStartDate' | 'plannedEndDate'>,
+    isProjectAdmin: boolean,
+    memberCount: number,
+    stats?: { notStarted: number; inProgress: number; done: number; percentageDone: number; lateTasks: number; blockedTasks: number },
+  ) {
     return {
       id: project.code,
       name: project.name,
@@ -266,13 +284,13 @@ export class ProjectsService {
       isProjectAdmin,
       memberCount,
       taskCounts: {
-        notStarted: 0,
-        inProgress: 0,
-        done: 0,
+        notStarted: stats?.notStarted || 0,
+        inProgress: stats?.inProgress || 0,
+        done: stats?.done || 0,
       },
-      percentageDone: 0,
-      lateTasks: 0,
-      blockedTasks: 0,
+      percentageDone: stats?.percentageDone || 0,
+      lateTasks: stats?.lateTasks || 0,
+      blockedTasks: stats?.blockedTasks || 0,
     };
   }
 }

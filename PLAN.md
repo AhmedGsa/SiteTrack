@@ -56,17 +56,19 @@ Build order for the take-home. Keep this file updated as steps land so context s
 
 ## Step 4 — Tasks, dependencies, status
 
-**Status: next**
+**Status: done**
 
-- `Task`, `TaskDependency`, per-project task counter (`PRJ-xxxx-T-yyyy`, never reused).
-- Dependencies only in the same project; reject cycles.
-- Status actions: Start (all waited-on tasks Done), Mark done (from In progress), Reopen (no dependent has started).
-- Late and Blocked are derived, never set by the client.
-- List filters and task details (ancestors/descendants with distance).
+- `Task`, `TaskDependency`, per-project `task_counters` (`PRJ-xxxx-T-yyyy`, never reused).
+- Dependencies only in the same project; cycles rejected.
+- Status actions: `POST .../start`, `.../done`, `.../reopen` with brief rules. Other transitions rejected.
+- Late and Blocked are derived in `TaskGraph` (a task can be both).
+- List: search, status, late, blocked, planned date overlap, sort.
+- Details: `allowedActions`, `waitsOn` / `waitedOnBy` with distance.
+- Project list task counts, % done, late, blocked now come from real tasks.
 
 ## Step 5 — Stores and stock
 
-**Status: pending**
+**Status: next**
 
 - One company store. One project store per project.
 - Stock rows: quantity, reorder point (company store), last delivery date (project store).

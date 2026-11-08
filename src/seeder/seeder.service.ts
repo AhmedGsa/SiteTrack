@@ -12,6 +12,10 @@ import { InvitationStatus } from "src/invitations/enums/invitation-status.enum";
 import { Notification } from "src/notifications/entities/notification.entity";
 import { NotificationType } from "src/notifications/enums/notification-type.enum";
 import { Material } from "src/materials/entities/material.entity";
+import { Task } from "src/tasks/entities/task.entity";
+import { TaskDependency } from "src/tasks/entities/task-dependency.entity";
+import { TaskCounter } from "src/tasks/entities/task-counter.entity";
+import { TaskStatus } from "src/tasks/enums/task-status.enum";
 
 
 @Injectable()
@@ -24,6 +28,9 @@ export class SeederService {
     @InjectRepository(Invitation) private readonly invitationRepository: Repository<Invitation>,
     @InjectRepository(Notification) private readonly notificationRepository: Repository<Notification>,
     @InjectRepository(Material) private readonly materialRepository: Repository<Material>,
+    @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
+    @InjectRepository(TaskDependency) private readonly taskDependencyRepository: Repository<TaskDependency>,
+    @InjectRepository(TaskCounter) private readonly taskCounterRepository: Repository<TaskCounter>,
   ) {}
 
   async seed() {
@@ -113,6 +120,59 @@ export class SeederService {
         const material = this.materialRepository.create(materialData);
         await this.materialRepository.save(material);
         console.log(`Material ${materialData.name} created`);
+      }
+    }
+
+    if (project) {
+      let taskCounter = await this.taskCounterRepository.findOneBy({ projectId: project.id });
+      const existingTask = await this.taskRepository.findOneBy({ projectId: project.id });
+      if (!existingTask) {
+        if (!taskCounter) {
+          taskCounter = this.taskCounterRepository.create({ projectId: project.id, lastNumber: 4 });
+        } else {
+          taskCounter.lastNumber = Math.max(taskCounter.lastNumber, 4);
+        }
+        await this.taskCounterRepository.save(taskCounter);
+        const foundations = this.taskRepository.create({
+          projectId: project.id,
+          code: `${project.code}-T-0001`,
+          name: 'Pour foundations',
+          plannedStartDate: '2026-03-01',
+          plannedEndDate: '2026-04-01',
+          status: TaskStatus.NOT_STARTED,
+        });
+        const columns = this.taskRepository.create({
+          projectId: project.id,
+          code: `${project.code}-T-0002`,
+          name: 'Raise columns',
+          plannedStartDate: '2026-04-02',
+          plannedEndDate: '2026-05-01',
+          status: TaskStatus.NOT_STARTED,
+        });
+        const slab = this.taskRepository.create({
+          projectId: project.id,
+          code: `${project.code}-T-0003`,
+          name: 'Pour level 2 slab',
+          plannedStartDate: '2026-05-02',
+          plannedEndDate: '2026-06-01',
+          status: TaskStatus.NOT_STARTED,
+        });
+        const facade = this.taskRepository.create({
+          projectId: project.id,
+          code: `${project.code}-T-0004`,
+          name: 'Install facade',
+          plannedStartDate: '2026-06-02',
+          plannedEndDate: '2026-07-15',
+          status: TaskStatus.NOT_STARTED,
+        });
+        await this.taskRepository.save([foundations, columns, slab, facade]);
+        await this.taskDependencyRepository.save([
+          this.taskDependencyRepository.create({ taskId: columns.id, dependsOnTaskId: foundations.id }),
+          this.taskDependencyRepository.create({ taskId: slab.id, dependsOnTaskId: columns.id }),
+          this.taskDependencyRepository.create({ taskId: facade.id, dependsOnTaskId: foundations.id }),
+          this.taskDependencyRepository.create({ taskId: facade.id, dependsOnTaskId: columns.id }),
+        ]);
+        console.log('Sample tasks and dependencies created for PRJ-0001');
       }
     }
 

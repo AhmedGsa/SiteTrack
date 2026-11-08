@@ -8,12 +8,14 @@ import { ProjectCounter } from './entities/project-counter.entity';
 import { AccessModule } from 'src/access/access.module';
 import { UsersModule } from 'src/users/users.module';
 import { InvitationsModule } from 'src/invitations/invitations.module';
+import { TasksModule } from 'src/tasks/tasks.module';
 
 @Module({
   imports: [
     AccessModule,
     UsersModule,
     InvitationsModule,
+    TasksModule,
     TypeOrmModule.forFeature([Project, ProjectMember, ProjectCounter]),
   ],
   controllers: [ProjectsController],

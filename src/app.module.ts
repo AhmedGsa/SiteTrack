@@ -11,6 +11,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MaterialsModule } from './materials/materials.module';
+import { TasksModule } from './tasks/tasks.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -26,6 +27,7 @@ import { APP_GUARD } from '@nestjs/core';
     InvitationsModule,
     NotificationsModule,
     MaterialsModule,
+    TasksModule,
     ThrottlerModule.forRoot(),
   ],
   controllers: [AppController],

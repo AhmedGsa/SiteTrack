@@ -9,11 +9,14 @@ import { ProjectCounter } from 'src/projects/entities/project-counter.entity';
 import { Invitation } from 'src/invitations/entities/invitation.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Material } from 'src/materials/entities/material.entity';
+import { Task } from 'src/tasks/entities/task.entity';
+import { TaskDependency } from 'src/tasks/entities/task-dependency.entity';
+import { TaskCounter } from 'src/tasks/entities/task-counter.entity';
 
 @Module({
     imports: [
         DatabaseModule,
-        TypeOrmModule.forFeature([User, Project, ProjectMember, ProjectCounter, Invitation, Notification, Material]),
+        TypeOrmModule.forFeature([User, Project, ProjectMember, ProjectCounter, Invitation, Notification, Material, Task, TaskDependency, TaskCounter]),
     ],
     providers: [SeederService],
 })
