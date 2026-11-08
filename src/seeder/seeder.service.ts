@@ -11,6 +11,7 @@ import { Invitation } from "src/invitations/entities/invitation.entity";
 import { InvitationStatus } from "src/invitations/enums/invitation-status.enum";
 import { Notification } from "src/notifications/entities/notification.entity";
 import { NotificationType } from "src/notifications/enums/notification-type.enum";
+import { Material } from "src/materials/entities/material.entity";
 
 
 @Injectable()
@@ -22,6 +23,7 @@ export class SeederService {
     @InjectRepository(ProjectCounter) private readonly projectCounterRepository: Repository<ProjectCounter>,
     @InjectRepository(Invitation) private readonly invitationRepository: Repository<Invitation>,
     @InjectRepository(Notification) private readonly notificationRepository: Repository<Notification>,
+    @InjectRepository(Material) private readonly materialRepository: Repository<Material>,
   ) {}
 
   async seed() {
@@ -96,6 +98,21 @@ export class SeederService {
         });
         await this.notificationRepository.save(notification);
         console.log('Pending invitation created for store manager');
+      }
+    }
+
+    const materials = [
+      { name: 'Cement, OPC 50 kg bag', category: 'Cement', unit: 'bag' },
+      { name: 'Sand, washed', category: 'Aggregates', unit: 'm3' },
+      { name: 'Rebar, 12 mm', category: 'Steel', unit: 'ton' },
+      { name: 'Concrete block, 20 cm', category: 'Masonry', unit: 'pcs' },
+    ];
+    for (const materialData of materials) {
+      const existing = await this.materialRepository.findOneBy({ name: materialData.name });
+      if (!existing) {
+        const material = this.materialRepository.create(materialData);
+        await this.materialRepository.save(material);
+        console.log(`Material ${materialData.name} created`);
       }
     }
 

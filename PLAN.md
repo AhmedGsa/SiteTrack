@@ -47,13 +47,16 @@ Build order for the take-home. Keep this file updated as steps land so context s
 
 ## Step 3 — Materials catalogue
 
-**Status: next**
+**Status: done**
 
-- Shared `Material` (name, category, unit). Any logged-in user. CRUD + search/filter. No stock yet.
+- Shared `Material` (name, category, unit). UUID PK. Unique name.
+- Any logged-in user can create, list, update, delete.
+- List: search by name, filter by category, sort by name or category.
+- `GET /materials/categories` for filter options. No stock yet.
 
 ## Step 4 — Tasks, dependencies, status
 
-**Status: pending**
+**Status: next**
 
 - `Task`, `TaskDependency`, per-project task counter (`PRJ-xxxx-T-yyyy`, never reused).
 - Dependencies only in the same project; reject cycles.
