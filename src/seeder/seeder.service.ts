@@ -19,6 +19,10 @@ import { TaskStatus } from "src/tasks/enums/task-status.enum";
 import { Store } from "src/stores/entities/store.entity";
 import { Stock } from "src/stores/entities/stock.entity";
 import { StoreType } from "src/stores/enums/store-type.enum";
+import { Delivery } from "src/deliveries/entities/delivery.entity";
+import { DeliveryLine } from "src/deliveries/entities/delivery-line.entity";
+import { DeliveryStatus } from "src/deliveries/enums/delivery-status.enum";
+import { DeliveryDirection } from "src/deliveries/enums/delivery-direction.enum";
 
 
 @Injectable()
@@ -36,6 +40,7 @@ export class SeederService {
     @InjectRepository(TaskCounter) private readonly taskCounterRepository: Repository<TaskCounter>,
     @InjectRepository(Store) private readonly storeRepository: Repository<Store>,
     @InjectRepository(Stock) private readonly stockRepository: Repository<Stock>,
+    @InjectRepository(Delivery) private readonly deliveryRepository: Repository<Delivery>,
   ) {}
 
   async seed() {
@@ -216,6 +221,40 @@ export class SeederService {
         });
         await this.stockRepository.save(stock);
         console.log(`Company stock seeded for ${item.name}`);
+      }
+    }
+
+    const cement = await this.materialRepository.findOneBy({ name: 'Cement, OPC 50 kg bag' });
+    const sender = createdUsers['storemanager@sitetrack.com'];
+    if (project && cement && sender && companyStore) {
+      const existingDelivery = await this.deliveryRepository.findOneBy({
+        projectId: project.id,
+        direction: DeliveryDirection.COMPANY_TO_PROJECT,
+        status: DeliveryStatus.IN_TRANSIT,
+      });
+      if (!existingDelivery) {
+        const delivery = this.deliveryRepository.create({
+          direction: DeliveryDirection.COMPANY_TO_PROJECT,
+          status: DeliveryStatus.IN_TRANSIT,
+          projectId: project.id,
+          senderUserId: sender.id,
+          sentAt: new Date(),
+        });
+        const savedDelivery = await this.deliveryRepository.save(delivery);
+        savedDelivery.lines = [
+          Object.assign(new DeliveryLine(), {
+            deliveryId: savedDelivery.id,
+            materialId: cement.id,
+            quantity: '25',
+          }),
+        ];
+        await this.deliveryRepository.save(savedDelivery);
+        const companyCement = await this.stockRepository.findOneBy({ storeId: companyStore.id, materialId: cement.id });
+        if (companyCement) {
+          companyCement.quantity = String(Number(companyCement.quantity) - 25);
+          await this.stockRepository.save(companyCement);
+        }
+        console.log('In-transit company delivery seeded for PRJ-0001');
       }
     }
 

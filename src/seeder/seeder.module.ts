@@ -14,11 +14,13 @@ import { TaskDependency } from 'src/tasks/entities/task-dependency.entity';
 import { TaskCounter } from 'src/tasks/entities/task-counter.entity';
 import { Store } from 'src/stores/entities/store.entity';
 import { Stock } from 'src/stores/entities/stock.entity';
+import { Delivery } from 'src/deliveries/entities/delivery.entity';
+import { DeliveryLine } from 'src/deliveries/entities/delivery-line.entity';
 
 @Module({
     imports: [
         DatabaseModule,
-        TypeOrmModule.forFeature([User, Project, ProjectMember, ProjectCounter, Invitation, Notification, Material, Task, TaskDependency, TaskCounter, Store, Stock]),
+        TypeOrmModule.forFeature([User, Project, ProjectMember, ProjectCounter, Invitation, Notification, Material, Task, TaskDependency, TaskCounter, Store, Stock, Delivery, DeliveryLine]),
     ],
     providers: [SeederService],
 })

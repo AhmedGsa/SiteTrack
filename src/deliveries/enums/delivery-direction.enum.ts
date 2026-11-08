@@ -1,0 +1,4 @@
+export enum DeliveryDirection {
+    COMPANY_TO_PROJECT = 'COMPANY_TO_PROJECT',
+    PROJECT_TO_COMPANY = 'PROJECT_TO_COMPANY',
+}

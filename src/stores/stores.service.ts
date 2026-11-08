@@ -63,6 +63,8 @@ export class StoresService {
       .limit(pageSize)
       .getRawMany();
 
+    const inTransit = await this.getInTransitToProjects(rows.map((row) => row.id));
+
     return {
       results: rows.map((row) => ({
         id: row.id,
@@ -70,7 +72,7 @@ export class StoresService {
         category: row.category,
         unit: row.unit,
         quantity: Number(row.quantity),
-        quantityInTransit: 0,
+        quantityInTransit: Number(inTransit.get(row.id) || 0),
         reorderPoint: row.reorderPoint === null || row.reorderPoint === undefined ? null : Number(row.reorderPoint),
         status: row.status,
       })),
@@ -150,6 +152,23 @@ export class StoresService {
     };
   }
 
+  async getCompanyStore() {
+    return await this.getOrCreateCompanyStore();
+  }
+
+  async getProjectStore(projectId: string, manager?: EntityManager) {
+    return await this.createProjectStore(projectId, manager);
+  }
+
+  async adjustQuantity(manager: EntityManager, storeId: string, materialId: string, quantity: number, lastDeliveryAt?: Date) {
+    const stock = await this.addQuantity(manager, storeId, materialId, quantity);
+    if (lastDeliveryAt) {
+      stock.lastDeliveryAt = lastDeliveryAt;
+      return await manager.save(stock);
+    }
+    return stock;
+  }
+
   async createProjectStore(projectId: string, manager?: EntityManager) {
     const storeRepo = manager ? manager.getRepository(Store) : this.storeRepository;
     const existing = await storeRepo.findOneBy({ projectId, type: StoreType.PROJECT });
@@ -203,6 +222,27 @@ export class StoresService {
     return stock;
   }
 
+  private async getInTransitToProjects(materialIds: string[]) {
+    const quantities = new Map<string, number>();
+    if (!materialIds.length) {
+      return quantities;
+    }
+    const rows = await this.dataSource.createQueryBuilder()
+      .select('line.materialId', 'materialId')
+      .addSelect('SUM(line.quantity)', 'qty')
+      .from('delivery_lines', 'line')
+      .innerJoin('deliveries', 'delivery', 'delivery.id = line.deliveryId')
+      .where('delivery.status = :status', { status: 'IN_TRANSIT' })
+      .andWhere('delivery.direction = :direction', { direction: 'COMPANY_TO_PROJECT' })
+      .andWhere('line.materialId IN (:...materialIds)', { materialIds })
+      .groupBy('line.materialId')
+      .getRawMany();
+    for (const row of rows) {
+      quantities.set(row.materialId, Number(row.qty));
+    }
+    return quantities;
+  }
+
   private statusSql() {
     return `CASE
       WHEN COALESCE(stock.quantity, 0) = 0 THEN 'OUT_OF_STOCK'
@@ -220,7 +260,7 @@ export class StoresService {
       category: material.category,
       unit: material.unit,
       quantity,
-      quantityInTransit: 0,
+      quantityInTransit: 0, // filled by list query; single-item responses recompute if needed
       reorderPoint,
       status: this.statusFrom(quantity, reorderPoint),
     };

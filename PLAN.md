@@ -78,16 +78,17 @@ Build order for the take-home. Keep this file updated as steps land so context s
 
 ## Step 6 — Deliveries
 
-**Status: next**
+**Status: done**
 
-- Sender initiates → stock leaves immediately → In transit.
-- Record / reject / cancel with stock movements in one transaction.
-- Company ↔ project only. No negative quantity under concurrency.
+- Initiate deducts sender stock immediately (`IN_TRANSIT`). Record adds to receiver; reject/cancel return to sender.
+- Company ↔ project only. Row locks + one transaction per action; never negative quantity.
 - Delivery is immutable after initiate.
+- Company store `quantityInTransit` is sum of in-transit company→project lines.
+- Seed: 25 bags of cement in transit to `PRJ-0001`.
 
 ## Step 7 — Scale, seed, Docker, README
 
-**Status: pending**
+**Status: next**
 
 - Indexes and list-query performance for assignment-scale data.
 - Large seeder + `docker compose up` as the only setup.
