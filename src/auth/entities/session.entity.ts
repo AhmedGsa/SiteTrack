@@ -3,11 +3,11 @@ import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } f
 
 @Entity("sessions")
 export class Session {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    @Column()
-    userId: number;
+    @Column('uuid')
+    userId: string;
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     user: User;

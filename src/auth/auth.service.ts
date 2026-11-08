@@ -39,12 +39,12 @@ export class AuthService {
     return {accessToken, refreshToken};
   }
 
-  async logout(sessionId: number) {
+  async logout(sessionId: string) {
     await this.sessionService.remove(sessionId);
     return { msg: 'Logged out successfully' };
   }
 
-  private async issueTokens(userId: number, email: string) {
+  private async issueTokens(userId: string, email: string) {
     const session = await this.sessionService.create(userId, 'pending');
     const payload: UserPayload = { userId, email, sessionId: session.id };
     const accessToken = await this.tokenService.generateAccessToken(payload);

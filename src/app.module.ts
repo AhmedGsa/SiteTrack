@@ -6,6 +6,8 @@ import { AuthModule } from './auth/auth.module';
 import { EnvConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { SeederModule } from './seeder/seeder.module';
+import { AccessModule } from './access/access.module';
+import { ProjectsModule } from './projects/projects.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -16,6 +18,8 @@ import { APP_GUARD } from '@nestjs/core';
     EnvConfigModule,
     DatabaseModule,
     SeederModule,
+    AccessModule,
+    ProjectsModule,
     ThrottlerModule.forRoot(),
   ],
   controllers: [AppController],

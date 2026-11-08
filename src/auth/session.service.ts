@@ -10,7 +10,7 @@ export class SessionService {
         @InjectRepository(Session) private readonly sessionRepository: Repository<Session>,
     ) {}
 
-    async create(userId: number, refreshToken: string) {
+    async create(userId: string, refreshToken: string) {
         const session = this.sessionRepository.create({
             userId,
             refreshTokenHash: await Hash.hash(refreshToken),
@@ -18,11 +18,11 @@ export class SessionService {
         return await this.sessionRepository.save(session);
     }
 
-    async findOne(id: number) {
+    async findOne(id: string) {
         return await this.sessionRepository.findOneBy({ id });
     }
 
-    async rotate(sessionId: number, refreshToken: string) {
+    async rotate(sessionId: string, refreshToken: string) {
         const session = await this.sessionRepository.findOneBy({ id: sessionId });
         if (!session) {
             throw new UnauthorizedException();
@@ -31,7 +31,7 @@ export class SessionService {
         return await this.sessionRepository.save(session);
     }
 
-    async validateRefreshToken(sessionId: number, refreshToken: string) {
+    async validateRefreshToken(sessionId: string, refreshToken: string) {
         const session = await this.sessionRepository.findOneBy({ id: sessionId });
         if (!session) {
             return null;
@@ -43,7 +43,7 @@ export class SessionService {
         return session;
     }
 
-    async remove(id: number) {
+    async remove(id: string) {
         await this.sessionRepository.delete(id);
     }
 }

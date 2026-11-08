@@ -3,11 +3,14 @@ import { DatabaseModule } from 'src/database/database.module';
 import { SeederService } from './seeder.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
+import { Project } from 'src/projects/entities/project.entity';
+import { ProjectMember } from 'src/projects/entities/project-member.entity';
+import { ProjectCounter } from 'src/projects/entities/project-counter.entity';
 
 @Module({
     imports: [
         DatabaseModule,
-        TypeOrmModule.forFeature([User]),
+        TypeOrmModule.forFeature([User, Project, ProjectMember, ProjectCounter]),
     ],
     providers: [SeederService],
 })

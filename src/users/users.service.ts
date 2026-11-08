@@ -30,7 +30,7 @@ export class UsersService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const user = await this.userRepository.findOneBy({id});
     if (!user) {
       throw new BadRequestException('User with provided id does not exist');
