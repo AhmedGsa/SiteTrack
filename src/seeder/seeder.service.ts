@@ -16,6 +16,9 @@ import { Task } from "src/tasks/entities/task.entity";
 import { TaskDependency } from "src/tasks/entities/task-dependency.entity";
 import { TaskCounter } from "src/tasks/entities/task-counter.entity";
 import { TaskStatus } from "src/tasks/enums/task-status.enum";
+import { Store } from "src/stores/entities/store.entity";
+import { Stock } from "src/stores/entities/stock.entity";
+import { StoreType } from "src/stores/enums/store-type.enum";
 
 
 @Injectable()
@@ -31,6 +34,8 @@ export class SeederService {
     @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
     @InjectRepository(TaskDependency) private readonly taskDependencyRepository: Repository<TaskDependency>,
     @InjectRepository(TaskCounter) private readonly taskCounterRepository: Repository<TaskCounter>,
+    @InjectRepository(Store) private readonly storeRepository: Repository<Store>,
+    @InjectRepository(Stock) private readonly stockRepository: Repository<Stock>,
   ) {}
 
   async seed() {
@@ -173,6 +178,44 @@ export class SeederService {
           this.taskDependencyRepository.create({ taskId: facade.id, dependsOnTaskId: columns.id }),
         ]);
         console.log('Sample tasks and dependencies created for PRJ-0001');
+      }
+    }
+
+    let companyStore = await this.storeRepository.findOneBy({ type: StoreType.COMPANY });
+    if (!companyStore) {
+      companyStore = this.storeRepository.create({ type: StoreType.COMPANY, projectId: null });
+      await this.storeRepository.save(companyStore);
+      console.log('Company store created');
+    }
+    if (project) {
+      let projectStore = await this.storeRepository.findOneBy({ projectId: project.id, type: StoreType.PROJECT });
+      if (!projectStore) {
+        projectStore = this.storeRepository.create({ type: StoreType.PROJECT, projectId: project.id });
+        await this.storeRepository.save(projectStore);
+        console.log('Project store created for PRJ-0001');
+      }
+    }
+    const companyStockSeed = [
+      { name: 'Cement, OPC 50 kg bag', quantity: '500', reorderPoint: '80' },
+      { name: 'Sand, washed', quantity: '40', reorderPoint: '50' },
+      { name: 'Rebar, 12 mm', quantity: '12', reorderPoint: '5' },
+      { name: 'Concrete block, 20 cm', quantity: '0', reorderPoint: '200' },
+    ];
+    for (const item of companyStockSeed) {
+      const material = await this.materialRepository.findOneBy({ name: item.name });
+      if (!material) {
+        continue;
+      }
+      const existingStock = await this.stockRepository.findOneBy({ storeId: companyStore.id, materialId: material.id });
+      if (!existingStock) {
+        const stock = this.stockRepository.create({
+          storeId: companyStore.id,
+          materialId: material.id,
+          quantity: item.quantity,
+          reorderPoint: item.reorderPoint,
+        });
+        await this.stockRepository.save(stock);
+        console.log(`Company stock seeded for ${item.name}`);
       }
     }
 

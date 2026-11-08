@@ -68,16 +68,17 @@ Build order for the take-home. Keep this file updated as steps land so context s
 
 ## Step 5 — Stores and stock
 
-**Status: next**
+**Status: done**
 
-- One company store. One project store per project.
-- Stock rows: quantity, reorder point (company store), last delivery date (project store).
-- Company store status: Out of stock / Low / Available.
-- Only store manager + SuperAdmin add company stock and set reorder points.
+- One company store (singleton). One project store created with each project.
+- `Stock` per store + material: quantity, company reorder point, project `lastDeliveryAt`.
+- Company store status: Out of stock / Low / Available. `quantityInTransit` is 0 until Step 6.
+- Only company store manager + SuperAdmin can hit `/company-store` (others get 404).
+- Project members see `/projects/:id/store`. Add stock only at the company store.
 
 ## Step 6 — Deliveries
 
-**Status: pending**
+**Status: next**
 
 - Sender initiates → stock leaves immediately → In transit.
 - Record / reject / cancel with stock movements in one transaction.

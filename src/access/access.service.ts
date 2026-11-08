@@ -48,6 +48,14 @@ export class AccessService {
     return { user, project, membership };
   }
 
+  async assertCanAccessCompanyStore(userId: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!this.isCompanyStoreManager(user)) {
+      throw new NotFoundException();
+    }
+    return user;
+  }
+
   async assertProjectAdmin(userId: string, code: string) {
     const access = await this.assertCanAccessProject(userId, code);
     if (this.isSuperAdmin(access.user)) {

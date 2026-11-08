@@ -13,6 +13,7 @@ import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/users/enum/role.enum';
 import { InvitationsService } from 'src/invitations/invitations.service';
 import { TasksService } from 'src/tasks/tasks.service';
+import { StoresService } from 'src/stores/stores.service';
 
 @Injectable()
 export class ProjectsService {
@@ -22,6 +23,7 @@ export class ProjectsService {
     private readonly usersService: UsersService,
     private readonly invitationsService: InvitationsService,
     private readonly tasksService: TasksService,
+    private readonly storesService: StoresService,
     @InjectRepository(Project) private readonly projectRepository: Repository<Project>,
     @InjectRepository(ProjectMember) private readonly projectMemberRepository: Repository<ProjectMember>,
   ) {}
@@ -58,6 +60,7 @@ export class ProjectsService {
         isAdmin: true,
       });
       await manager.save(membership);
+      await this.storesService.createProjectStore(savedProject.id, manager);
 
       return savedProject;
     });

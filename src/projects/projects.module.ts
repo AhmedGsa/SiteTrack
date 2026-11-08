@@ -9,6 +9,7 @@ import { AccessModule } from 'src/access/access.module';
 import { UsersModule } from 'src/users/users.module';
 import { InvitationsModule } from 'src/invitations/invitations.module';
 import { TasksModule } from 'src/tasks/tasks.module';
+import { StoresModule } from 'src/stores/stores.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TasksModule } from 'src/tasks/tasks.module';
     UsersModule,
     InvitationsModule,
     TasksModule,
+    StoresModule,
     TypeOrmModule.forFeature([Project, ProjectMember, ProjectCounter]),
   ],
   controllers: [ProjectsController],
