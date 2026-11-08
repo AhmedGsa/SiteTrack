@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Delivery } from './entities/delivery.entity';
 import { DeliveryLine } from './entities/delivery-line.entity';
 import { DeliveryStatus } from './enums/delivery-status.enum';
@@ -51,11 +51,7 @@ export class DeliveriesService {
       throw new BadRequestException('Only in-transit deliveries can be recorded');
     }
     await this.dataSource.transaction(async (manager) => {
-      const locked = await manager.findOne(Delivery, {
-        where: { id: delivery.id },
-        relations: ['lines'],
-        lock: { mode: 'pessimistic_write' },
-      });
+      const locked = await this.lockDelivery(manager, delivery.id);
       if (locked.status !== DeliveryStatus.IN_TRANSIT) {
         throw new BadRequestException('Only in-transit deliveries can be recorded');
       }
@@ -138,11 +134,7 @@ export class DeliveriesService {
 
   private async returnToSender(deliveryId: string, receiverUserId: string | null, status: DeliveryStatus) {
     await this.dataSource.transaction(async (manager) => {
-      const locked = await manager.findOne(Delivery, {
-        where: { id: deliveryId },
-        relations: ['lines'],
-        lock: { mode: 'pessimistic_write' },
-      });
+      const locked = await this.lockDelivery(manager, deliveryId);
       if (locked.status !== DeliveryStatus.IN_TRANSIT) {
         throw new BadRequestException('Delivery is no longer in transit');
       }
@@ -165,6 +157,18 @@ export class DeliveriesService {
       locked.receivedAt = status === DeliveryStatus.CANCELLED ? null : now;
       await manager.save(locked);
     });
+  }
+
+  private async lockDelivery(manager: EntityManager, deliveryId: string) {
+    const locked = await manager.findOne(Delivery, {
+      where: { id: deliveryId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!locked) {
+      throw new NotFoundException();
+    }
+    locked.lines = await manager.find(DeliveryLine, { where: { deliveryId: locked.id } });
+    return locked;
   }
 
   private async findAll(filterDto: FilterDeliveriesDto, projectUuid?: string) {

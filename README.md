@@ -1,21 +1,18 @@
 # SiteTrack API
 
-Backend for SiteTrack, a construction project and materials tracker. NestJS, TypeORM, PostgreSQL.
+SiteTrack is a construction project and materials tracker. Companies run many sites. Each site is a project with members, tasks, and its own store. The company has one central store. Materials move only between the company store and a project store.
 
-Swagger is at `/api-docs`.
+This service is a NestJS API on PostgreSQL. It owns authentication, authorization, project membership, the task graph, stock, and deliveries. The HTTP API is under `/api/v1`. Swagger is at `/api-docs`.
 
 ## Run
 
-### Docker
+`docker compose up --build` is the full setup. It starts Postgres and the API, creates the schema, and loads the demo dataset.
 
-`docker compose up --build` starts Postgres and the API. On boot the API creates the schema and loads the small demo dataset. No other setup is required.
+- API: `http://localhost:3000/api/v1`
+- Docs: `http://localhost:3000/api-docs`
+- Postgres, from the host: `localhost:55432`
 
-API: `http://localhost:3000/api/v1`  
-Docs: `http://localhost:3000/api-docs`
-
-### Local
-
-Copy `.env-example` to `.env`, then:
+To run it on a machine that already has Node and Postgres, copy `.env-example` to `.env`, then:
 
 ```bash
 npm install
@@ -25,7 +22,7 @@ npm run seed
 
 ### Demo accounts
 
-Password for every account below is `password123`.
+Every demo account uses the password `password123`.
 
 | Role | Email |
 | --- | --- |
@@ -33,23 +30,17 @@ Password for every account below is `password123`.
 | Company store manager | storemanager@sitetrack.com |
 | User | user@sitetrack.com |
 
-The demo seed also creates `PRJ-0001` (the user above is its project admin), a pending invitation to the store manager, four tasks with dependencies, four materials, company stock, and one in-transit cement delivery.
+The demo dataset also includes project `PRJ-0001` (the user above is its project admin), a pending invitation to the store manager, four tasks with dependencies, four materials, company stock, and one in-transit cement delivery of 25 bags.
 
 ## Scale dataset
 
-The assignment test volume is loaded separately. This **replaces** whatever is in the database.
-
-```bash
-npm run seed:scale
-```
-
-Inside Docker, after the stack is up:
+`npm run seed:scale` replaces the database with a dataset large enough to exercise lists, filters, and the task graph. Inside Docker, after the stack is up:
 
 ```bash
 docker compose exec nest-app npm run seed:scale
 ```
 
-It inserts at least:
+Expect several minutes. The three demo accounts are recreated with the same password. Volumes:
 
 | Data | Volume |
 | --- | --- |
@@ -62,33 +53,34 @@ It inserts at least:
 | Deliveries | 400,000 |
 | Delivery lines | 3,000,000 |
 
-The three demo accounts are recreated with the same password. Expect several minutes. Dependencies only point at earlier task numbers in the same project, so the graph has no cycles. Stock quantities are a snapshot for the list screens; they are not the result of replaying every historical delivery.
+Dependencies only point at earlier task numbers in the same project, so the graph has no cycles. Stock quantities are a snapshot for the list screens. They are not a replay of every historical delivery.
 
-## Decisions
+## Automated checks
 
-- **NestJS modules** follow the same shape as the rest of this codebase: config wrappers, TypeORM, JWT access + refresh, class-validator, Swagger.
-- **Primary keys are UUIDs.** Public project and task ids (`PRJ-0001`, `PRJ-0001-T-0001`) are separate codes from a locked counter, so they stay unique under concurrent creates and are never reused.
-- **Sessions.** The refresh token is stored only as a hash. Logout deletes that session, so the access token and refresh token from it stop working. Access tokens stay short (15 minutes); refresh keeps an active user signed in.
-- **Hidden projects are 404.** A missing id and an id the caller cannot see return the same empty 404. A member who lacks a project-admin action gets 403.
-- **Role and membership are read from the database on each request**, so a removal or role change applies on the next call.
-- **Late and Blocked are computed**, never stored. A task can be both.
-- **Task dependencies** are a directed graph inside one project. A new edge is rejected when it would make a task wait on itself.
-- **Deliveries** move stock in one transaction with a row lock. The sender loses quantity at initiate. Record credits the receiver. Reject and cancel put it back. A delivery is not edited after that.
-- **Company store** is one row. Each project gets its own store when the project is created. Project stores never deliver to each other.
-- **Register includes the app role** because the brief says the person chooses it. That includes SuperAdmin.
+With the API running:
 
-## Trade-offs
+```bash
+npm run smoke
+```
 
-- Schema changes use TypeORM `synchronize` instead of migrations. That is enough for this assignment and unsafe for a database you cannot drop.
-- Task lists and dependency checks load one project's tasks into memory. The cap in the brief is 3,000 tasks in a project, which is comfortable. A project far beyond that would need the graph in SQL.
-- Lists use offset pagination. The first pages stay fast with the indexes on project, status, and delivery dates. A deep page of 400,000 deliveries gets slower; keyset pagination would fix that.
-- The scale seed does not replay 400,000 stock movements. Rebuilding a perfect ledger was not needed to exercise the screens.
-- Failed login uses one message. Register still says when an email is taken, which is a small information leak the brief did not forbid.
+`BASE_URL` defaults to `http://localhost:3000/api/v1`. The script registers its own users and walks the authorization and stock rules: a hidden project returns 404, the last project admin cannot be removed, a blocked task cannot start, a dependency cycle is rejected, a normal user cannot see the company store, a delivery cannot overdraw stock, recording it moves the quantity, and logout ends that session.
 
-## With more time
+## Authorization
 
-- Migrations, and a read model for project task counts so the projects screen does not scan tasks per row.
-- Keyset pagination on deliveries, tasks, and notifications.
-- Stop letting registration pick SuperAdmin; invite that role from an existing SuperAdmin.
-- Notify project members when a delivery is sent, not only when they are invited.
-- A background job if Late/Blocked ever need to be filtered across every project at once without reading tasks.
+Passwords are stored as bcrypt hashes and are never returned. Login uses the same error whether the email is unknown or the password is wrong. Access tokens last 15 minutes. The refresh token is stored only as a hash on a session. Logout deletes that session, so both tokens from it stop working.
+
+The caller's role and project membership are loaded from the database on each request. A missing project and a project the caller cannot see both return 404, so a response does not reveal that the project exists. A member who is not allowed to perform an admin action receives 403. SuperAdmin can open any project. The company store is visible only to a company store manager or a SuperAdmin; anyone else receives 404.
+
+Registration accepts the role the caller chooses, including SuperAdmin, so any role can be created without a separate admin step.
+
+## Domain rules
+
+Public project and task codes (`PRJ-0001`, `PRJ-0001-T-0001`) come from a locked counter. They are not the primary key. Primary keys are UUIDs. Deleting a project or task does not reuse its code.
+
+Late and Blocked are computed when tasks are read, not stored. A task is Late when it is not done and a planned date has passed. A task is Blocked when it is not done and some task it waits on, directly or through other tasks, is not done. A task can be both.
+
+A task starts only from Not Started, and only when every task it waits on is Done. It is marked Done only from In Progress. Reopening a Done task is refused when a later task has already left Not Started. A new dependency is refused when it would make a task wait on itself.
+
+There is one company store. Each project receives its own store when the project is created. Deliveries go from the company to a project, or from a project back to the company. Project stores do not deliver to each other. Stock cannot go below zero.
+
+Initiating a delivery deducts the sender immediately and leaves the delivery In Transit. Recording it credits the receiver. Rejecting or cancelling it returns the quantity to the sender. Cancel is limited to the user who sent it. A delivery is not edited after it is initiated.

@@ -182,7 +182,7 @@ export class ScaleSeederService {
         JOIN projects project ON project.id = task."projectId"
         JOIN tasks earlier ON earlier."projectId" = task."projectId"
           AND substring(earlier.code from '-T-(\\d+)$')::int = substring(task.code from '-T-(\\d+)$')::int - 3
-        WHERE substring(project.code from 5)::int <= 8
+        WHERE substring(project.code from 5)::int <= 14
           AND substring(task.code from '-T-(\\d+)$')::int >= 4
       `);
       this.logger.log('Dependencies ready');
@@ -190,12 +190,12 @@ export class ScaleSeederService {
       await runner.query(`
         CREATE TEMP TABLE seed_deliveries AS
         SELECT gen_random_uuid() AS id,
-          n,
-          CASE WHEN n % 2 = 0 THEN 'COMPANY_TO_PROJECT' ELSE 'PROJECT_TO_COMPANY' END AS direction,
-          CASE WHEN n % 20 = 0 THEN 'IN_TRANSIT' WHEN n % 20 = 1 THEN 'REJECTED' WHEN n % 20 = 2 THEN 'CANCELLED' ELSE 'DELIVERED' END AS status,
+          gs.n,
+          CASE WHEN gs.n % 2 = 0 THEN 'COMPANY_TO_PROJECT' ELSE 'PROJECT_TO_COMPANY' END AS direction,
+          CASE WHEN gs.n % 20 = 0 THEN 'IN_TRANSIT' WHEN gs.n % 20 = 1 THEN 'REJECTED' WHEN gs.n % 20 = 2 THEN 'CANCELLED' ELSE 'DELIVERED' END AS status,
           p.id AS "projectId"
-        FROM generate_series(1, 400000) n
-        JOIN seed_projects p ON p.n = ((n - 1) % 2000) + 1
+        FROM generate_series(1, 400000) AS gs(n)
+        JOIN seed_projects p ON p.n = ((gs.n - 1) % 2000) + 1
       `);
       await runner.query(`
         INSERT INTO deliveries (id, direction, status, "projectId", "senderUserId", "receiverUserId", "sentAt", "receivedAt", "createdAt")
