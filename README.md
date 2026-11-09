@@ -84,3 +84,23 @@ A task starts only from Not Started, and only when every task it waits on is Don
 There is one company store. Each project receives its own store when the project is created. Deliveries go from the company to a project, or from a project back to the company. Project stores do not deliver to each other. Stock cannot go below zero.
 
 Initiating a delivery deducts the sender immediately and leaves the delivery In Transit. Recording it credits the receiver. Rejecting or cancelling it returns the quantity to the sender. Cancel is limited to the user who sent it. A delivery is not edited after it is initiated.
+
+## Trade-offs
+
+Schema updates use TypeORM `synchronize` rather than migrations. That matches a database that can be recreated with Docker. It is the wrong tool for a database that must keep its data across releases.
+
+Task lists and dependency checks load one project's tasks into memory. The largest project in the scale dataset has 3,000 tasks, which stays comfortable. A project far beyond that would need the graph evaluated in SQL.
+
+Lists use offset pagination. Indexes on project, status, and delivery dates keep the first pages fast. A deep page of 400,000 deliveries gets slower. Keyset pagination would fix that.
+
+The scale seed writes stock as a snapshot. Rebuilding a ledger from 400,000 deliveries was not required for the list and filter screens.
+
+Register tells the caller when an email is already taken. Login does not.
+
+## Further work
+
+- Migrations, and a stored project summary so the projects screen does not count tasks per row.
+- Keyset pagination on deliveries, tasks, and notifications.
+- SuperAdmin created only by an existing SuperAdmin, not by public registration.
+- Notify project members when a delivery is sent, not only when they are invited.
+- A background job if Late and Blocked need to be filtered across every project without reading that project's tasks.
